@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "codehub"
+version = "0.0.1"
+description = "CodeHub is your premier destination for comprehensive programming education. We provide a dynamic and inclusive learning environment for individuals of all skill levels, from beginners taking their first coding steps to seasoned developers looking to stay ahead of the curve."
+authors = ["Veiga <agiev.soa@gmail.com>"]
+license = "Agiev I.A."
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = {extras = ["all"], version = "^0.104.1"}
+pydantic = {extras = ["email"], version = "^2.4.2"}
+sqlalchemy = "^2.0.23"
+psycopg2 = "^2.9.9"
+asyncpg = "^0.29.0"
+alembic = "^1.12.1"
+
+
+[tool.poetry.group.dev.dependencies]
+setuptools = "^68.2.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
