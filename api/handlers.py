@@ -1,17 +1,18 @@
 from typing import Optional
 from uuid import UUID
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from api.models import UserCreate, ShowUser, UpdateUserRequest, DeleteUserResponse
 from db.dals import UserDAL
 from db.session import get_db
+from db.models import User
+from sqlalchemy.exc import IntegrityError
+from logger_config import *
 
 user_router = APIRouter(prefix="/user", tags=["user"])
 
 
-async def _create_new_user(body: UserCreate, db: AsyncSession) -> ShowUser:
+async def _create_new_user(body: UserCreate, db: AsyncSession) -> User:
     async with db as session:
         async with session.begin():
             user_dal = UserDAL(session)
@@ -21,37 +22,28 @@ async def _create_new_user(body: UserCreate, db: AsyncSession) -> ShowUser:
                 email=body.email
             )
 
-            if not user:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"user with id: {user} not found.")
-
-            return ShowUser.model_validate(user)
+            return user
 
 
-async def _delete_user(user_id: UUID, db: AsyncSession) -> Optional[ShowUser]:
+async def _delete_user(user_id: UUID, db: AsyncSession) -> Optional[UUID]:
     async with db as session:
         async with session.begin():
             user_dal = UserDAL(session)
             user_id = await user_dal.delete_user(user_id=user_id)
 
-            if not user_id:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"user with id: {user_id} not found.")
-
             return user_id
 
 
-async def _get_user_by_id(user_id: UUID, db: AsyncSession) -> Optional[ShowUser]:
+async def _get_user_by_id(user_id: UUID, db: AsyncSession) -> Optional[User]:
     async with db as session:
         async with session.begin():
             user_dal = UserDAL(session)
             user = await user_dal.get_user_by_id(user_id=user_id)
 
-            if not user:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"user with id: {user} not found.")
-
-            return ShowUser.model_validate(user)
+            return user
 
 
-async def _update_user(user_id: UUID, body: UpdateUserRequest, db: AsyncSession) -> Optional[ShowUser]:
+async def _update_user(user_id: UUID, body: UpdateUserRequest, db: AsyncSession) -> Optional[User]:
     async with db as session:
         async with session.begin():
             user_dal = UserDAL(session)
@@ -61,27 +53,37 @@ async def _update_user(user_id: UUID, body: UpdateUserRequest, db: AsyncSession)
                 **body
             )
 
-            if not user:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"user with id: {user} not found.")
-
-            return ShowUser.model_validate(user)
+            return user
 
 
 @user_router.post('/', response_model=ShowUser)
 async def create_user(body: UserCreate, db: AsyncSession = Depends(get_db)) -> ShowUser:
-    return await _create_new_user(body, db)
+    try:
+        user = await _create_new_user(body, db)
+    except IntegrityError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=e.args[0])
+
+    return ShowUser.model_validate(user)
 
 
 @user_router.delete('/', response_model=DeleteUserResponse)
 async def delete_user(user_id: UUID, db: AsyncSession = Depends(get_db)) -> DeleteUserResponse:
     deleted_user_id = await _delete_user(user_id, db)
+
+    if not deleted_user_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"user with id: {user_id} not found.")
+
     return DeleteUserResponse(user_id=deleted_user_id)
 
 
 @user_router.get('/', response_model=ShowUser)
 async def get_user_by_id(user_id: UUID, db: AsyncSession = Depends(get_db)) -> ShowUser:
     user = await _get_user_by_id(user_id, db)
-    return user
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"user with id: {user} not found.")
+
+    return ShowUser.model_validate(user)
 
 
 @user_router.put('/', response_model=ShowUser)
@@ -89,5 +91,13 @@ async def update_user(user_id: UUID, body: UpdateUserRequest, db: AsyncSession =
     if not body.model_dump(exclude_none=True):
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                             detail="At least one parameter for user update info should be provided")
-    user = await _update_user(user_id, body, db)
-    return user
+
+    try:
+        user = await _update_user(user_id, body, db)
+
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"user with id: {user} not found.")
+    except IntegrityError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=e.args[0])
+
+    return ShowUser.model_validate(user)

@@ -2,7 +2,6 @@ from typing import Optional
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import update, and_, select
-
 from db.models import User
 
 
