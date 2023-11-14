@@ -1,11 +1,8 @@
 from fastapi import status
 
+
 async def test_create_user(client, get_user_from_database):
-    user_data = {
-        "name": "Baby",
-        "surname": "Bone",
-        'email': "babybone@gmail.com"
-    }
+    user_data = {"name": "Baby", "surname": "Bone", "email": "babybone@gmail.com"}
     resp = client.post("/user/", json=user_data)
     data_from_resp = resp.json()
     assert resp.status_code == status.HTTP_200_OK
@@ -24,20 +21,18 @@ async def test_create_user(client, get_user_from_database):
 
 
 async def test_create_user_duplicate_error(client, get_user_from_database):
-    user_data = {
-        "name": "Baby",
-        "surname": "Bone",
-        'email': "babybone@gmail.com"
-    }
+    user_data = {"name": "Baby", "surname": "Bone", "email": "babybone@gmail.com"}
 
     user_data_same_email = {
         "name": "ybab",
         "surname": "Enob",
-        'email': "babybone@gmail.com"
+        "email": "babybone@gmail.com",
     }
     resp_one = client.post("/user/", json=user_data)
     resp_two = client.post("/user/", json=user_data_same_email)
 
     assert resp_one.status_code == status.HTTP_200_OK
     assert resp_two.status_code == status.HTTP_409_CONFLICT
-    assert "Key (email)=(babybone@gmail.com) already exists." in resp_two.json()['detail']
+    assert (
+        "Key (email)=(babybone@gmail.com) already exists." in resp_two.json()["detail"]
+    )

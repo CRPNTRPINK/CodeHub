@@ -5,15 +5,16 @@ Revises: 13f726065a27
 Create Date: 2023-11-09 01:05:20.992522
 
 """
-from typing import Sequence, Union
+from typing import Sequence
+from typing import Union
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 
 # revision identifiers, used by Alembic.
-revision: str = '05af29b8197c'
-down_revision: Union[str, None] = '13f726065a27'
+revision: str = "05af29b8197c"
+down_revision: Union[str, None] = "13f726065a27"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
