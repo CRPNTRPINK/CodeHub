@@ -1,11 +1,13 @@
 import uuid
+
+
 async def test_delete_user(client, create_user_in_database, get_user_from_database):
     user_data = {
         "user_id": uuid.uuid4(),
         "name": "Baby_del",
         "surname": "Bone_del",
-        'email': "babybonedel@gmail.com",
-        "is_active": True
+        "email": "babybonedel@gmail.com",
+        "is_active": True,
     }
     await create_user_in_database(**user_data)
     resp = client.delete(f'/user/?user_id={user_data["user_id"]}')
